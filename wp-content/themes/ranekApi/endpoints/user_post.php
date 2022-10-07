@@ -2,13 +2,44 @@
 
 function api_user_post($request)
 {
-  $user_email = $request['email'];
+  $email = sanitize_email($request['email']);
+  $name = sanitize_text_field($request['name']);
+  $password = $request['password'];
+  $cep = sanitize_text_field($request['cep']);
+  $street = sanitize_text_field($request['street']);
+  $number = sanitize_text_field($request['number']);
+  $district = sanitize_text_field($request['district']);
+  $city = sanitize_text_field($request['city']);
+  $state = sanitize_text_field($request['state']);
 
-  $response = array(
-    'name' => 'Michael',
-    // 'email' => 'michael.dev.nascimento@gmail.com'
-    'email' => $user_email
-  );
+
+  $user_exists = username_exists($email);
+  $email_exisits = email_exists($email);
+
+  // // Checando apenas pelo eamail se o usar existe ou não
+  if (!$user_exists && !$email_exisits && $email && $password) {
+
+    $user_id = wp_create_user($email, $password, $email);
+
+    $response = array(
+      'ID' => $user_id,
+      'display_name' => $name,
+      'first_name' => $name,
+      'role' => 'subscriber',
+    );
+
+    wp_update_user($response);
+
+    update_user_meta($user_id, 'cep', $cep);
+    update_user_meta($user_id, 'street', $street);
+    update_user_meta($user_id, 'district', $district);
+    update_user_meta($user_id, 'number', $number);
+    update_user_meta($user_id, 'city', $city);
+    update_user_meta($user_id, 'state', $state);
+    // 
+  } else {
+    $response = new WP_Error('email', 'Email já cadastrado', array('status' => 403));
+  }
 
   return rest_ensure_response($response);
 }
