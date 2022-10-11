@@ -1,8 +1,7 @@
 <?php
 
-function api_product_get($request)
+function product_scheme($slug)
 {
-  $slug = $request["slug"];
   $post_id = get_product_id_by_slug($slug);
 
   if ($post_id) {
@@ -40,6 +39,11 @@ function api_product_get($request)
   return $response;
 }
 
+function api_product_get($request)
+{
+  $response = product_scheme($request["slug"]);
+  return rest_ensure_response($response);
+}
 
 function register_api_product_get()
 {
@@ -51,5 +55,67 @@ function register_api_product_get()
   ));
 };
 
-
 add_action('rest_api_init', 'register_api_product_get');
+// API products
+function api_products_get($request)
+{
+  $q = sanitize_text_field(($request['q']) ?: '');
+  $_page = sanitize_text_field(($request['_page']) ?: 0);
+  $_limit = sanitize_text_field(($request['_limit']) ?: 9);
+  $user_id = sanitize_text_field(($request['user_id']));
+
+  $user_id_query = null;
+
+  if ($user_id) {
+    $user_id_query = array(
+      'key' => 'user_id',
+      'value' => $user_id,
+      'compare' => '='
+    );
+  }
+
+  $sold = array(
+    'key' => 'sold',
+    'value' => 'false',
+    'compare' => '='
+  );
+
+  $query = array(
+    'post_type' => 'product',
+    'posts_per_page' => $_limit,
+    'paged' => $_page,
+    's' => $q,
+    'meta_query' => array(
+      $user_id_query,
+      $sold
+    )
+  );
+
+
+  $loop = new WP_Query($query);
+  $posts = $loop->posts;
+  $total = $loop->found_posts;
+
+  $products = array();
+  foreach ($posts as $key => $value) {
+    $products[] = product_scheme($value->post_name);
+  }
+
+  $response = rest_ensure_response($products);
+  $response->header('X-Total-Count', $total);
+
+  return $response;
+}
+
+function register_api_products_get()
+{
+  register_rest_route('api', '/product', array(
+    array(
+      'methods' => WP_REST_Server::READABLE,
+      'callback' => 'api_products_get'
+    )
+  ));
+};
+
+
+add_action('rest_api_init', 'register_api_products_get');
