@@ -13,14 +13,14 @@ function api_transaction_post($request)
     $buyer_id = sanitize_text_field($request['buyer_id']);
     $seller_id = sanitize_text_field($request['seller_id']);
     $address = json_encode($request['address'], JSON_UNESCAPED_UNICODE);
-    $product = json_encode($request['address'], JSON_UNESCAPED_UNICODE);
+    $product = json_encode($request['product'], JSON_UNESCAPED_UNICODE);
 
     $product_id = get_product_id_by_slug($product_slug);
     update_post_meta($product_id, 'sold', 'true');
 
 
     $response = array(
-      'author' => $user_id,
+      'post_author' => $user_id,
       'post_type' => 'transaction',
       'post_title' => $buyer_id . '-' . $product_name,
       'post_status' => 'publish',
@@ -28,11 +28,9 @@ function api_transaction_post($request)
         'buyer_id' => $buyer_id,
         'seller_id' => $seller_id,
         'address' => $address,
-        'prodcut' => $product
+        'product' => $product
       )
     );
-
-
     $post_id = wp_insert_post($response);
   } else {
 
@@ -47,7 +45,7 @@ function register_api_transaction_post()
 {
   register_rest_route('api', '/transaction', array(
     array(
-      'methods' => WP_REST_Server::EDITABLE,
+      'methods' => WP_REST_Server::CREATABLE,
       'callback' => 'api_transaction_post'
     )
   ));
